@@ -29,6 +29,12 @@ Foldery inputs, outputs i data nie sa czyszczone przez aktualizacje. Pliki
 GPKG/XLSX z projektami, katalogiem i BELL trzeba trzymac lokalnie w inputs.
 Nie sa one wrzucane do repozytorium, zeby nie publikowac danych projektowych.
 
+Jezeli aktualizacja pokazuje "Repository not found", to ten komputer nie ma
+dostepu do repozytorium GitHub. Najprosciej ustaw repo jako publiczne w GitHub:
+Settings -> General -> Danger Zone -> Change repository visibility -> Public.
+Alternatywnie zaloguj Git/GitHub na komputerze klienta kontem, ktore ma dostep
+do prywatnego repo.
+
 Dostep z innego komputera w sieci LAN
 -------------------------------------
 

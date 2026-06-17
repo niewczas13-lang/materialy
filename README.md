@@ -33,6 +33,12 @@ Skrypt zatrzymuje aplikacje, pobiera najnowsze pliki z GitHuba, robi reset
 trackowanych plikow do aktualnej wersji `origin/main` i uruchamia aplikacje
 ponownie w tle.
 
+Jesli przy aktualizacji pojawia sie `Repository not found`, to komputer nie ma
+dostepu do repozytorium. Najprosciej ustaw repo jako publiczne w GitHub:
+`Settings -> General -> Danger Zone -> Change repository visibility -> Public`.
+Alternatywnie zaloguj Git/GitHub na komputerze klienta kontem, ktore ma dostep
+do prywatnego repo.
+
 ## Dane lokalne
 
 Do repo nie sa wrzucane pliki projektowe ani historia/katalog:

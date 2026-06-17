@@ -10,9 +10,27 @@ Set-Location -LiteralPath $Root
 
 function Invoke-Git {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
-    & git @Args
+    $Output = & git @Args 2>&1
     if ($LASTEXITCODE -ne 0) {
+        $OutputText = ($Output | Out-String).Trim()
+        if ($OutputText -match "Repository not found") {
+            throw @"
+GitHub zwrocil: Repository not found.
+Najczesciej oznacza to, ze repo jest prywatne albo ten komputer nie jest zalogowany do GitHuba.
+
+Co zrobic:
+1. Najprosciej: ustaw repozytorium https://github.com/niewczas13-lang/materialy jako Public.
+2. Alternatywnie: zaloguj Git/GitHub na tym komputerze klienta kontem z dostepem do repo.
+3. Potem uruchom AKTUALIZUJ_APKE.bat ponownie.
+
+Remote:
+$(git remote -v | Out-String)
+"@
+        }
         throw "Git zakonczyl prace kodem ${LASTEXITCODE}: git $($Args -join ' ')"
+    }
+    if ($Output) {
+        $Output | ForEach-Object { Write-Host $_ }
     }
 }
 

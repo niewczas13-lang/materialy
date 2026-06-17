@@ -29,3 +29,5 @@ def test_update_script_stops_app_resets_from_git_and_starts_app_without_cleaning
     assert "$TargetRef" in text
     assert "git clean" not in text.lower()
     assert "$LASTEXITCODE:" not in text
+    assert "Repository not found" in text
+    assert "repo jest prywatne" in text
