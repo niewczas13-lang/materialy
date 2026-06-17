@@ -10,8 +10,16 @@ Set-Location -LiteralPath $Root
 
 function Invoke-Git {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
-    $Output = & git @Args 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $Output = & git @Args 2>&1
+        $ExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
+    if ($ExitCode -ne 0) {
         $OutputText = ($Output | Out-String).Trim()
         if ($OutputText -match "Repository not found") {
             throw @"
@@ -27,7 +35,7 @@ Remote:
 $(git remote -v | Out-String)
 "@
         }
-        throw "Git zakonczyl prace kodem ${LASTEXITCODE}: git $($Args -join ' ')"
+        throw "Git zakonczyl prace kodem ${ExitCode}: git $($Args -join ' ')"
     }
     if ($Output) {
         $Output | ForEach-Object { Write-Host $_ }
