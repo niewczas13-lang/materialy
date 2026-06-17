@@ -12,7 +12,7 @@ function Invoke-Git {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
     & git @Args
     if ($LASTEXITCODE -ne 0) {
-        throw "Git zakonczyl prace kodem $LASTEXITCODE: git $($Args -join ' ')"
+        throw "Git zakonczyl prace kodem ${LASTEXITCODE}: git $($Args -join ' ')"
     }
 }
 

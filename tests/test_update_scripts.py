@@ -28,3 +28,4 @@ def test_update_script_stops_app_resets_from_git_and_starts_app_without_cleaning
     assert stop_pos < fetch_pos < reset_pos < start_pos
     assert "$TargetRef" in text
     assert "git clean" not in text.lower()
+    assert "$LASTEXITCODE:" not in text
