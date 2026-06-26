@@ -14,6 +14,19 @@ FTTH BOM - paczka lokalna
    STOP_APKE.bat
 7. Aktualizacja aplikacji z GitHuba:
    AKTUALIZUJ_APKE.bat
+8. Autostart po restarcie komputera:
+   DODAJ_AUTOSTART.bat
+
+Autostart po restarcie
+----------------------
+
+DODAJ_AUTOSTART.bat tworzy zadanie Harmonogramu zadan Windows o nazwie
+"FTTH BOM". Zadanie uruchamia aplikacje w tle po zalogowaniu uzytkownika
+Windows. W typowej konfiguracji nie wymaga uprawnien administratora.
+
+Jezeli chcesz usunac autostart, uruchom:
+
+   USUN_AUTOSTART.bat
 
 Aktualizacja z GitHuba
 ----------------------

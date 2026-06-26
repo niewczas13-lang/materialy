@@ -23,6 +23,24 @@ Po sieci LAN jest dostepna pod adresem komputera, np.:
 http://192.168.x.x:8787/
 ```
 
+## Autostart po restarcie
+
+Po pierwszym uruchomieniu kliknij:
+
+```powershell
+.\DODAJ_AUTOSTART.bat
+```
+
+Skrypt tworzy zadanie Harmonogramu zadan Windows `FTTH BOM`, ktore uruchamia
+aplikacje w tle po zalogowaniu uzytkownika. Nie wymaga uprawnien administratora
+w typowej konfiguracji Windows.
+
+Usuniecie autostartu:
+
+```powershell
+.\USUN_AUTOSTART.bat
+```
+
 ## Aktualizacja
 
 ```powershell
