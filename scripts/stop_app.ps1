@@ -9,6 +9,23 @@ $Root = Split-Path -Parent $PSScriptRoot
 $PidFile = Join-Path $Root "data\ftth_bom.pid"
 $Stopped = $false
 
+function Wait-ForPidExit {
+    param(
+        [int]$AppPid,
+        [int]$Attempts = 20,
+        [int]$DelayMs = 250
+    )
+
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        $proc = Get-Process -Id $AppPid -ErrorAction SilentlyContinue
+        if (-not $proc) {
+            return $true
+        }
+        Start-Sleep -Milliseconds $DelayMs
+    }
+    return $false
+}
+
 function Stop-AppPid {
     param(
         [int]$AppPid,
@@ -22,6 +39,8 @@ function Stop-AppPid {
     $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $AppPid"
     if ($proc) {
         Stop-Process -Id $AppPid -Force
+        Wait-Process -Id $AppPid -Timeout 5 -ErrorAction SilentlyContinue
+        [void](Wait-ForPidExit -AppPid $AppPid)
         if (-not $Quiet -and $Reason) {
             Write-Host "Zatrzymano PID $AppPid ($($proc.Name)): $Reason"
         }
@@ -35,6 +54,25 @@ function Get-ListeningPids {
 
     Get-NetTCPConnection -LocalPort $LocalPort -State Listen -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty OwningProcess -Unique
+}
+
+function Stop-PortListeners {
+    param([int]$LocalPort)
+
+    for ($attempt = 1; $attempt -le 10; $attempt++) {
+        $listenerPids = @(Get-ListeningPids -LocalPort $LocalPort)
+        if ($listenerPids.Count -eq 0) {
+            return
+        }
+
+        foreach ($listenerPid in $listenerPids) {
+            if (Stop-AppPid -AppPid $listenerPid -Reason "proces nasluchujacy na porcie $LocalPort") {
+                $script:Stopped = $true
+            }
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
 }
 
 if (Test-Path -LiteralPath $PidFile) {
@@ -60,14 +98,7 @@ if (-not $Stopped) {
     }
 }
 
-$listenerPids = @(Get-ListeningPids -LocalPort $Port)
-foreach ($listenerPid in $listenerPids) {
-    if (Stop-AppPid -AppPid $listenerPid -Reason "proces nasluchujacy na porcie $Port") {
-        $Stopped = $true
-    }
-}
-
-Start-Sleep -Milliseconds 500
+Stop-PortListeners -LocalPort $Port
 $remainingListeners = @(Get-ListeningPids -LocalPort $Port)
 
 if (-not $Quiet) {

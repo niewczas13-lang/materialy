@@ -29,6 +29,10 @@ def test_stop_script_kills_listener_on_ftth_port_and_reports_status():
     assert "LocalPort $Port" in text
     assert "OwningProcess" in text
     assert "Stop-AppPid -AppPid $listenerPid" in text
+    assert "Wait-Process" in text
+    assert "Wait-ForPidExit" in text
+    assert "Stop-PortListeners" in text
+    assert "attempt" in text
     assert "Port 8787 jest wolny" in text
     assert "Port 8787 nadal jest zajety" in text
 
