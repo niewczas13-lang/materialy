@@ -30,8 +30,14 @@ ROOT = Path(__file__).resolve().parent
 INPUTS = ROOT / "inputs"
 OUTPUTS = ROOT / "outputs"
 UPLOADS = OUTPUTS / "uploads"
-CATALOG = next(INPUTS.glob("KATALOGI*.xlsx"), None)
-BELL = next(INPUTS.glob("*BELL*.xlsx"), None)
+
+
+@dataclass(frozen=True)
+class InputSources:
+    inputs_dir: Path
+    catalog: Path | None
+    bell: Path | None
+    excel_files: tuple[Path, ...]
 
 
 @dataclass
@@ -70,8 +76,9 @@ class Handler(BaseHTTPRequestHandler):
         if urlparse(self.path).path != "/analyze":
             self.send_error(404)
             return
-        if CATALOG is None or BELL is None:
-            self._send_html(render_page("<p class='error'>Brakuje katalogu lub pliku BELL w folderze inputs.</p>"))
+        sources = find_input_sources()
+        if sources.catalog is None or sources.bell is None:
+            self._send_html(render_page(render_missing_inputs(sources)))
             return
         form = cgi.FieldStorage(
             fp=self.rfile,
@@ -94,7 +101,11 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         job_id = create_job(upload_path.stem)
-        thread = threading.Thread(target=run_analysis_job, args=(job_id, upload_path, temp_dir), daemon=True)
+        thread = threading.Thread(
+            target=run_analysis_job,
+            args=(job_id, upload_path, temp_dir, sources.catalog, sources.bell),
+            daemon=True,
+        )
         thread.start()
         self.send_response(303)
         self.send_header("Location", f"/result/{job_id}")
@@ -218,7 +229,49 @@ def job_snapshot(job_id: str) -> dict[str, object] | None:
         }
 
 
-def run_analysis_job(job_id: str, upload_path: Path, temp_dir: Path) -> None:
+def find_input_sources() -> InputSources:
+    INPUTS.mkdir(exist_ok=True)
+    excel_files = tuple(sorted(INPUTS.glob("*.xlsx"), key=lambda path: path.name.lower()))
+    catalog = next((path for path in excel_files if path.name.upper().startswith("KATALOGI")), None)
+    bell = next((path for path in excel_files if "BELL" in path.name.upper()), None)
+    return InputSources(inputs_dir=INPUTS, catalog=catalog, bell=bell, excel_files=excel_files)
+
+
+def render_input_status(sources: InputSources) -> str:
+    catalog = sources.catalog.name if sources.catalog else "brak"
+    bell = sources.bell.name if sources.bell else "brak"
+    files = ", ".join(path.name for path in sources.excel_files) if sources.excel_files else "brak plikow .xlsx"
+    return (
+        f"<span>Katalog: {html.escape(catalog)} | BELL: {html.escape(bell)}</span>"
+        f"<br><small>Folder inputs: {html.escape(str(sources.inputs_dir))}</small>"
+        f"<br><small>Pliki XLSX w inputs: {html.escape(files)}</small>"
+    )
+
+
+def render_missing_inputs(sources: InputSources) -> str:
+    missing = []
+    if sources.catalog is None:
+        missing.append("katalogu pasujacego do KATALOGI*.xlsx")
+    if sources.bell is None:
+        missing.append("pliku BELL pasujacego do *BELL*.xlsx")
+    return (
+        "<p class='error'>Brakuje "
+        + html.escape(" oraz ".join(missing))
+        + " w folderze inputs.<br>"
+        + f"Sprawdz folder: {html.escape(str(sources.inputs_dir))}</p>"
+        + "<p>"
+        + render_input_status(sources)
+        + "</p>"
+    )
+
+
+def run_analysis_job(
+    job_id: str,
+    upload_path: Path,
+    temp_dir: Path,
+    catalog_path: Path,
+    bell_path: Path,
+) -> None:
     def progress(event: tuple[int, str]) -> None:
         percent, message = event
         update_job(job_id, percent=percent, message=message)
@@ -227,8 +280,8 @@ def run_analysis_job(job_id: str, upload_path: Path, temp_dir: Path) -> None:
         update_job(job_id, percent=5, message="GPKG zapisane w lokalnym temp")
         result = run_analysis(
             gpkg_path=upload_path,
-            catalog_path=CATALOG,
-            bell_path=BELL,
+            catalog_path=catalog_path,
+            bell_path=bell_path,
             task_name=upload_path.stem,
             preferences_db=ROOT / "data" / "preferences.sqlite",
             local_copy=False,
@@ -286,6 +339,7 @@ def remove_pid_file(pid_file: Path | None) -> None:
 
 
 def render_page(content: str = "") -> str:
+    sources = find_input_sources()
     return f"""<!doctype html>
 <html lang="pl">
 <head>
@@ -318,7 +372,7 @@ def render_page(content: str = "") -> str:
     <form action="/analyze" method="post" enctype="multipart/form-data">
       <input type="file" name="gpkg" accept=".gpkg" required>
       <button type="submit">Analizuj projekt</button>
-      <span>Katalog: {html.escape(CATALOG.name if CATALOG else 'brak')} | BELL: {html.escape(BELL.name if BELL else 'brak')}</span>
+      <div>{render_input_status(sources)}</div>
     </form>
     {content}
   </main>
