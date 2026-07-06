@@ -14,6 +14,25 @@ def test_update_batch_invokes_powershell_update_script():
     assert "ExecutionPolicy Bypass" in text
 
 
+def test_stop_script_kills_listener_on_ftth_port_and_reports_status():
+    batch = ROOT / "STOP_APKE.bat"
+    script = ROOT / "scripts" / "stop_app.ps1"
+
+    assert batch.exists()
+    assert script.exists()
+    batch_text = batch.read_text(encoding="utf-8", errors="ignore")
+    text = script.read_text(encoding="utf-8", errors="ignore")
+
+    assert "Start-Sleep -Seconds 2" in batch_text
+    assert "timeout /t" not in batch_text.lower()
+    assert "Get-NetTCPConnection" in text
+    assert "LocalPort $Port" in text
+    assert "OwningProcess" in text
+    assert "Stop-AppPid -AppPid $listenerPid" in text
+    assert "Port 8787 jest wolny" in text
+    assert "Port 8787 nadal jest zajety" in text
+
+
 def test_update_script_stops_app_resets_from_git_and_starts_app_without_cleaning_inputs():
     script = ROOT / "scripts" / "update_app.ps1"
 
